@@ -19,22 +19,6 @@
         android:paddingLeft="@dimen/activity_horizontal_margin"
         android:paddingRight="@dimen/activity_horizontal_margin"
         android:paddingTop="@dimen/activity_vertical_margin">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Click the button to get GPS coordinates" />
-        <TextView
-            android:id="@+id/lat"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Latitude"
-            android:textSize="30dp"/>
-        <TextView
-            android:id="@+id/lon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Longitude"
-            android:textSize="30dp" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -43,11 +27,12 @@
             <Spinner
                 android:id="@+id/spinFrom"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"></Spinner>
+                android:layout_height="30dp"
+                android:layout_marginBottom="10dp"></Spinner>
             <Spinner
                 android:id="@+id/spinTo"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"></Spinner>
+                android:layout_height="30dp"></Spinner>
             <Button
                 android:id="@+id/plotBut"
                 android:layout_width="match_parent"
@@ -55,6 +40,39 @@
                 android:text="Plot it"/>
         </LinearLayout>
 
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/theView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:layout_alignParentBottom="true"
+        android:paddingBottom="50dp"
+        android:background="@color/colorPrimary"
+        android:paddingLeft="@dimen/activity_horizontal_margin"
+        android:paddingRight="@dimen/activity_horizontal_margin">
+        <TextView
+            android:id="@+id/distTV"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textSize="30dp"
+            android:textColor="#fff"
+            android:layout_weight="1"/>
+        <TextView
+            android:id="@+id/timeTV"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textSize="40dp"
+            android:textColor="#fff"
+            android:layout_weight="1" />
+        <TextView
+            android:id="@+id/moneyTV"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textSize="30dp"
+            android:textColor="#fff"
+            android:layout_weight="1" />
     </LinearLayout>
     <Button
         android:id="@+id/but"

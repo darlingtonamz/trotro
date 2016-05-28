@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Beacon</string>
     <string name="google_map_api_key">AIzaSyDjzBRLaLiFkteevxZV7ZiGTS4dpBV94Rc</string>
+    <string name="GCM_server_id">926888893382</string>
+    <string name="GCM_server_key">AIzaSyBcYaEGWGajyqyMJsAkRpGRijU9Lh8NPPg</string>
+
+
 </resources>

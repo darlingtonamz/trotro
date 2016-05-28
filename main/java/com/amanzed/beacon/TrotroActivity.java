@@ -1,7 +1,13 @@
 package com.amanzed.beacon;
 
 import android.Manifest;
+import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -14,14 +20,20 @@ import android.test.suitebuilder.annotation.Suppress;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.amanzed.beacon.map.MyLocationListener;
+import com.amanzed.beacon.tro.Edge;
 import com.amanzed.beacon.tro.Stop;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -40,39 +52,27 @@ import org.w3c.dom.Text;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class TrotroActivity extends AppCompatActivity implements OnClickListener {
+public class TrotroActivity extends AppCompatActivity implements OnClickListener, OnItemSelectedListener {
     final int MY_PERMISSIONS_REQUEST_FINE_LOCATION = 0;
     LocationManager lm;
     LocationListener ll;
     public static double lat, lon;
-    TextView latText, lonText;
-    Button but;
+    TextView timeTV, distTV, moneyTV;
+    Button but, plotBut;
     private GoogleMap googleMap;
     DatabaseReference myRef;
     ArrayList<Stop> stops = new ArrayList<Stop>();
+    ArrayList<Edge> edges = new ArrayList<Edge>();
     ArrayList<String> stopNames = new ArrayList<String>();
+    int from, to;
+    LinearLayout theView;
+    ArrayAdapter<String> adapter;
+    private BroadcastReceiver mRegistrationBroadcastReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        ll = new MyLocationListener();
-        latText = (TextView) findViewById(R.id.lat);
-        lonText = (TextView) findViewById(R.id.lon);
-        but = (Button) findViewById(R.id.but);
-        but.setOnClickListener(this);
-        checkGPSpermission();
-        try {
-            initilizeMap();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        setContentView(R.layout.trotro_activity);
 
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         myRef = database.getReference("benchmark");
@@ -87,8 +87,8 @@ public class TrotroActivity extends AppCompatActivity implements OnClickListener
                     Stop stop = snap.getValue(Stop.class);
                     stops.add(stop);
                     stopNames.add(stop.getStop_name());
-                    /*Log.d("beacon", "BEACON: "+ stop.getStop_name());
-                    MarkerOptions marker = new MarkerOptions()
+                    Log.d("beacon", "BEACON: "+ stop.getStop_name());
+                    /*MarkerOptions marker = new MarkerOptions()
                             .position(new LatLng(stop.getStop_lat(), stop.getStop_lon_orig()))
                             .title(stop.getStop_name());
                     googleMap.addMarker(marker);    // adding marker
@@ -96,6 +96,12 @@ public class TrotroActivity extends AppCompatActivity implements OnClickListener
                             new LatLng(stop.getStop_lat(), stop.getStop_lon_orig())).zoom(14).build();
                     googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));*/
                 }
+                for (DataSnapshot snap : snapshot.child("edges").getChildren()) {
+                    //Getting the data from snapshot
+                    Edge edge = snap.getValue(Edge.class);
+                    edges.add(edge);
+                }
+                adapter.notifyDataSetChanged();
             }
 
             @Override
@@ -103,12 +109,86 @@ public class TrotroActivity extends AppCompatActivity implements OnClickListener
 
             }
         });
+
+        mRegistrationBroadcastReceiver = new BroadcastReceiver() {
+
+            //When the broadcast received
+            //We are sending the broadcast from GCMRegistrationIntentService
+
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                //If the broadcast has received with success
+                //that means device is registered successfully
+                if(intent.getAction().equals(GCMRegistrationIntentService.REGISTRATION_SUCCESS)){
+                    //Getting the registration token from the intent
+                    String token = intent.getStringExtra("token");
+                    //Displaying the token as toast
+                    Toast.makeText(getApplicationContext(), "Registration token:" + token, Toast.LENGTH_LONG).show();
+
+                    //if the intent is not with success then displaying error messages
+                } else if(intent.getAction().equals(GCMRegistrationIntentService.REGISTRATION_ERROR)){
+                    Toast.makeText(getApplicationContext(), "GCM registration error!", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(getApplicationContext(), "Error occurred", Toast.LENGTH_LONG).show();
+                }
+            }
+        };
+
+        //Checking play service is available or not
+        int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(getApplicationContext());
+
+        //if play service is not available
+        if(ConnectionResult.SUCCESS != resultCode) {
+            //If play service is supported but not installed
+            if(GooglePlayServicesUtil.isUserRecoverableError(resultCode)) {
+                //Displaying message that play service is not installed
+                Toast.makeText(getApplicationContext(), "Google Play Service is not install/enabled in this device!", Toast.LENGTH_LONG).show();
+                GooglePlayServicesUtil.showErrorNotification(resultCode, getApplicationContext());
+
+                //If play service is not supported
+                //Displaying an error message
+            } else {
+                Toast.makeText(getApplicationContext(), "This device does not support for Google Play Service!", Toast.LENGTH_LONG).show();
+            }
+
+            //If play service is available
+        } else {
+            //Starting intent to register device
+            Intent itent = new Intent(this, GCMRegistrationIntentService.class);
+            startService(itent);
+        }
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        ll = new MyLocationListener();
+        timeTV = (TextView) findViewById(R.id.timeTV);
+        distTV = (TextView) findViewById(R.id.distTV);
+        moneyTV = (TextView) findViewById(R.id.moneyTV);
+        but = (Button) findViewById(R.id.but);
+        plotBut = (Button) findViewById(R.id.plotBut);
+        theView = (LinearLayout)findViewById(R.id.theView);
+        but.setOnClickListener(this);
+        plotBut.setOnClickListener(this);
+
+        checkGPSpermission();
+        try {
+            initilizeMap();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         Spinner sFrom = (Spinner)findViewById(R.id.spinFrom);
         Spinner sTo = (Spinner)findViewById(R.id.spinTo);
-        ArrayAdapter<String> karant_adapter = new ArrayAdapter<String>(this,
+        adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_spinner_item, stopNames);
-        sTo.setAdapter(karant_adapter);
-        sFrom.setAdapter(karant_adapter);
+        sTo.setAdapter(adapter);
+        sFrom.setAdapter(adapter);
+        sTo.setOnItemSelectedListener(this);
+        sFrom.setOnItemSelectedListener(this);
     }
 
     private void initilizeMap() {
@@ -147,21 +227,14 @@ public class TrotroActivity extends AppCompatActivity implements OnClickListener
     public void onClick(View v) {
         switch (v.getId()){
             case R.id.but:
-                /*latText.setText(String.valueOf(lat));
-                lonText.setText(String.valueOf(lon));
-                MarkerOptions marker = new MarkerOptions().position(new LatLng(lat, lon)).title("Current location ");
-                googleMap.addMarker(marker);    // adding marker
-                CameraPosition cameraPosition = new CameraPosition.Builder().target(
-                        new LatLng(lat, lon)).zoom(16).build();
-
-                googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));*/
-                /*HashMap<String, String> out = new HashMap<>();
-                out.put("driver_id", "1");
-                out.put("lat", "1.34567876");
-                out.put("lon", "4.23455432");
-                out.put("pickup_id", "1");
-                out.put("time", "14232324248");*/
-                //myRef.push().setValue(out);
+                break;
+            case R.id.plotBut:
+                Log.d("beacon", "FROM: "+from+" | TO: "+ to);
+                if (from == to)
+                    Toast.makeText(TrotroActivity.this, "Make sure your start is different from your destination", Toast.LENGTH_SHORT).show();
+                else
+                    plotFromTo();
+                break;
 
         }
     }
@@ -186,5 +259,64 @@ public class TrotroActivity extends AppCompatActivity implements OnClickListener
         Log.d("beacon","START GPS");
         // (provider, mintime, mindistance, locationListener)
         lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 0, ll);
+    }
+
+    public void onItemSelected(AdapterView<?> parent, View view,
+                               int pos, long id) {
+
+        Log.e("beacon", "Working");
+        Log.d("beacon", "POS: "+pos);
+
+        switch (parent.getId()){
+            case R.id.spinFrom:
+                Log.d("beacon", "from_POS: "+pos);
+                from = pos;
+                break;
+            case R.id.spinTo:
+                Log.d("beacon", "to_POS: "+pos);
+                to = pos;
+                break;
+        }
+    }
+
+    public void onNothingSelected(AdapterView<?> parent) {
+        // Another interface callback
+    }
+
+    public void plotFromTo(){
+
+        int i = from;
+        boolean isBig = (from <= to);
+        googleMap.clear();
+        double estDist = 0; double estTime = 0;
+        while (i <= to){
+            MarkerOptions marker = new MarkerOptions()
+                    .position(new LatLng(stops.get(i).getStop_lat(), stops.get(i).getStop_lon_orig()))
+                    .title(stops.get(i).getStop_name());
+            googleMap.addMarker(marker);    // adding marker
+            CameraPosition cameraPosition = new CameraPosition.Builder().target(
+                    new LatLng(stops.get(i).getStop_lat(), stops.get(i).getStop_lon_orig())).zoom(14).build();
+            googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+
+            Edge e = new Edge();
+            if (isBig) {
+                e = edges.get(i);
+                i++;
+            }else {
+                e = edges.get(i-1);
+                i--;
+            }
+
+            estDist += e.getDistance();
+            estTime += (e.getDistance() / e.getSpeed());
+
+            setInfo(estDist, estTime);
+        }
+    }
+    public void setInfo(double dis, double time){
+        distTV.setText(String.valueOf(dis)+"\nMeters");
+        timeTV.setText(String.valueOf(Math.round(time/60)+"\nMins"));
+        moneyTV.setText("1.2\nCedi");
+        theView.setVisibility(View.VISIBLE);
     }
 }
