@@ -45,6 +45,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".PaymentActivity"
+            android:theme="@style/AppTheme"></activity>
+        <activity android:name=".DriverActivity"
+            android:theme="@style/AppTheme"></activity>
 
         <!--
             GCM Receiver

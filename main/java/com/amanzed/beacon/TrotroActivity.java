@@ -18,6 +18,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.test.suitebuilder.annotation.Suppress;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
@@ -61,13 +63,14 @@ public class TrotroActivity extends AppCompatActivity implements OnClickListener
     Button but, plotBut;
     private GoogleMap googleMap;
     DatabaseReference myRef;
-    ArrayList<Stop> stops = new ArrayList<Stop>();
+    public static ArrayList<Stop> stops = new ArrayList<Stop>();
     ArrayList<Edge> edges = new ArrayList<Edge>();
     ArrayList<String> stopNames = new ArrayList<String>();
     int from, to;
     LinearLayout theView;
     ArrayAdapter<String> adapter;
     private BroadcastReceiver mRegistrationBroadcastReceiver;
+    private boolean isPlotted;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -227,6 +230,12 @@ public class TrotroActivity extends AppCompatActivity implements OnClickListener
     public void onClick(View v) {
         switch (v.getId()){
             case R.id.but:
+                if (isPlotted) {
+                    Intent in = new Intent(this, PaymentActivity.class);
+                    startActivity(in);
+                }else{
+                    Toast.makeText(this, "Please select a valid route", Toast.LENGTH_SHORT).show();
+                }
                 break;
             case R.id.plotBut:
                 Log.d("beacon", "FROM: "+from+" | TO: "+ to);
@@ -311,6 +320,7 @@ public class TrotroActivity extends AppCompatActivity implements OnClickListener
             estTime += (e.getDistance() / e.getSpeed());
 
             setInfo(estDist, estTime);
+            isPlotted = true;
         }
     }
     public void setInfo(double dis, double time){
@@ -318,5 +328,22 @@ public class TrotroActivity extends AppCompatActivity implements OnClickListener
         timeTV.setText(String.valueOf(Math.round(time/60)+"\nMins"));
         moneyTV.setText("1.2\nCedi");
         theView.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.activity_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_driver:
+                Intent in = new Intent(this, DriverActivity.class);
+                startActivity(in);
+                break;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }
